@@ -8,17 +8,34 @@ from millify import millify
 
 # SET LAYOUT
 header_icon = get_base64_image("Final_Project/assets/internet.png")
+
+# Data title style
 st.markdown(f"""
     <div style="display: flex; justify-content: center;">
         <img src=data:image/png;base64,{header_icon} width="150">
     </div>
             
     <div style="text-align: center;">
-        <h1>INTERNET USERS DATA ANALYSIS</h1><br>
+        <h1>INTERNET USERS DATA ANALYSIS</h1>
+        <b>Source:</b> 
+        <i><a href="https://www.kaggle.com/datasets/kanchana1990/world-internet-usage-data-2023-updated">
+        https://www.kaggle.com/datasets/kanchana1990/world-internet-usage-data-2023-updated</a></i><br><br>
         <h3>Data board</h3><br>
     </div>
     """, unsafe_allow_html=1)
 
+# Subheader style
+st.markdown("""
+    <style>
+        h3 {
+            padding-top: 50px !important;
+            border-top: 1px solid white;
+            text-align: center !important;
+        }
+    </style>
+""", unsafe_allow_html=1)
+
+# Read data
 df = pd.read_csv(".\\Final_Project\\internet_users.csv")
 
 # CLEAN DATA
@@ -64,7 +81,7 @@ with col3:
 with col4:
     createBasicInfoCol("Time range", f"{len(years)} years", time_range_icon)
 with col5:
-    createBasicInfoCol("Organization", "WB & ITU", organization_icon)
+    createBasicInfoCol("Organizations", "WB, ITU & CIA", organization_icon)
 
 add_endline(2)
 
@@ -74,7 +91,7 @@ add_endline(2)
 df_users_sorted = df.sort_values(by="Users (CIA)", ascending=1)
 df_users_sorted = df_users_sorted[df_users_sorted["Location"] != "World"]
 
-st.subheader("Top 20 Countries/ Region with the MOST Internet users")
+st.subheader("Top 20 Countries/ Regions with the MOST Internet users")
 
 fig = px.bar(df_users_sorted.tail(20), x="Location", y="Users (CIA)", 
             color="Users (CIA)",
@@ -85,17 +102,41 @@ col11, col12 = st.columns(2)
 
 with col11:
     data = df_users_sorted.iloc[-1]
-    num =  millify(data["Users (CIA)"], precision=3)
-    createHotspotCol("Highest Internet usage", data["Location"], num, data["Rate (WB)"], data["Rate (ITU)"])
+    num =  millify(data["Users (CIA)"], precision=2)
+    createHotspotCol("Highest Internet Usage", data["Location"], num, data["Rate (WB)"], data["Rate (ITU)"])
 with col12:
     data = df_users_sorted.iloc[0]
-    num =  millify(data["Users (CIA)"], precision=3)
-    createHotspotCol("Lowest Internet usage", data["Location"], num, data["Rate (WB)"], data["Rate (ITU)"])
+    num =  millify(data["Users (CIA)"], precision=2)
+    createHotspotCol("Lowest Internet Usage", data["Location"], num, data["Rate (WB)"], data["Rate (ITU)"])
 
-add_endline(3)
+add_endline(2)
+
+st.subheader("Internet Usage between Continents")
+
+col13, col14, col15 = st.columns(3)
+
+total_internet_users = df["Users (CIA)"].iloc[0]
+df["Continent"] = df["Location"].apply(get_continent)
+
+with col13:
+    df_europe = df[df["Continent"] == "Europe"]
+    europe_users = df_europe["Users (CIA)"].sum()
+
+    createContinentUsageCol("Europe", europe_users, total_internet_users, "#A94A4A")
+with col14:
+    df_asia = df[df["Continent"] == "Asia"]
+    asia_users = df_asia["Users (CIA)"].sum()
+
+    createContinentUsageCol("Asia", asia_users, total_internet_users, "#F4D793")
+with col15:
+    df_africa = df[df["Continent"] == "Africa"]
+    africa_users = df_africa["Users (CIA)"].sum()
+
+    createContinentUsageCol("Africa", africa_users, total_internet_users, "#81BFDA")
+
 
 # Data from each organization
-st.subheader("Comparing 2 Organization Internet users Rate")
+st.subheader("Comparing 2 Organizations Internet users Rate")
 
 st.markdown("""
     <h4 style="margin-bottom: -50px;">Choose a year</h4>
@@ -125,29 +166,19 @@ with col7:
     fig2.update_layout(title="By ITU", title_x=0.38, title_y=0.25, margin={"b": 140})
     st.plotly_chart(fig2)
 
-col13, col14 = st.columns(2)
-total_internet_users = df["Users (CIA)"].iloc[0]
-df["Continent"] = df["Location"].apply(get_continent)
-
-with col13:
-    createContinentUsageCol("Internet usage", "Europe", 10, 10, total_internet_users)
-with col14:
-    df_asia = df[df["Continent"] == "Asia"]
-    asia_users = df_asia.sum()
-
-    createContinentUsageCol("Internet usage", "Asia", 10, asia_users, total_internet_users)
-
 # Difference between to datas
 df["Diff (ITU & WB)"] = (df["Rate (WB)"] - df["Rate (ITU)"]).abs()
 diff_avg = df.groupby(["Year", "Location"],as_index=0)["Diff (ITU & WB)"].mean()
 diff_avg = diff_avg[diff_avg["Year"] >= 2019]
 diff_avg = diff_avg[diff_avg["Diff (ITU & WB)"] >= 0.1]
 
-st.subheader("Median Internet users Rate Difference (ITU & WB) - All the time")
+st.subheader("Median Internet users Rate Difference (ITU & WB) - 2019 to 2023")
 
-fig3 = px.bar(diff_avg, x="Year", y = "Diff (ITU & WB)",
+fig3 = px.bar(diff_avg, x="Year", 
+            y = "Diff (ITU & WB)",
             color="Location",
             barmode = "group")
+
 fig3.update_layout(yaxis_type="log")
 st.plotly_chart(fig3)
 
@@ -158,8 +189,8 @@ diff_percent_avg = diff_percent_avg[diff_percent_avg["Year"] >= 2019]
 min_diff = diff_percent_avg["Median Difference"].min()
 max_diff = diff_percent_avg["Median Difference"].max()
 
-most_accurate_year = diff_percent_avg.loc[diff_percent_avg["Median Difference"] == min_diff, "Year"].tolist()
-least_accurate_year = diff_percent_avg.loc[diff_percent_avg["Median Difference"] == max_diff, "Year"].tolist()
+most_similar_year = diff_percent_avg.loc[diff_percent_avg["Median Difference"] == min_diff, "Year"].tolist()
+least_similar_year = diff_percent_avg.loc[diff_percent_avg["Median Difference"] == max_diff, "Year"].tolist()
 
 diff_percent_avg["Median Difference"] = diff_percent_avg["Median Difference"].apply(lambda x: f"{x:.4f}%")
 
@@ -168,11 +199,11 @@ col8, col9, col10 = st.columns([1, 2, 2])
 with col8:
     st.write(diff_percent_avg)
 with col9:
-    data = ', '.join(map(str, most_accurate_year))
+    data = ', '.join(map(str, most_similar_year))
     percent = f"{min_diff:.2f}%"
-    createConclusionCol("Most Accurate Year", data, percent)
+    createConclusionCol("Most Similar Years", data, percent)
 with col10:
-    data = ', '.join(map(str, least_accurate_year))
+    data = ', '.join(map(str, least_similar_year))
     percent = f"{max_diff:.2f}%"
-    createConclusionCol("Least Accurate Year", data, percent)
+    createConclusionCol("Least Similar Year", data, percent)
          

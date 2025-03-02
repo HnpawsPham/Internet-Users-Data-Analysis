@@ -7,6 +7,8 @@ import pycountry_convert as pc
 BLACK = "#2D2727"
 GREEN = "#4E9F3D"
 BLUE = "#4d8aeb"
+ORANGE = "#D2665A"
+YELLOW = "#E8B86D"
 
 # ADDITIONA FUNCS
 def get_base64_image(image_path):
@@ -29,25 +31,44 @@ def get_continent(location):
     except:
         return "Unknown"
 
-def create_half_gauge(val, max_val):
+def create_half_gauge(name, val, max_val, color):
     fig = go.Figure(go.Indicator(
         mode = "gauge+number",
         value = val,
         domain = {'x': [0, 1], 'y': [0, 1]},
         gauge = {
-            'axis': {'range': [0, max_val], 'tickvals': [0, max_val / 2, max_val]},
+            'axis': {
+                'range': [0, max_val],
+                'nticks': 10, 
+                'tickfont': {'size': 12}
+            },
             'bar': {'color': "white", "thickness": 0.4},
             'bgcolor': "white",
             'borderwidth': 0,
             'bordercolor': "white",
-            'axis': {'tickfont': {'size': 14}},
             'steps' : [
-                 {'range': [0, max_val], 'color': f"{BLUE}"},
-                 {'range': [max_val/2, max_val], 'color': f"{BLUE}"}],
-            'threshold' : {'line': {'color': "black", 'width': 0}, 'thickness': 0.5, 'value': val}
-        }))
+                 {'range': [0, max_val], 'color': f"{color}"},
+                 {'range': [max_val/2, max_val], 'color': f"{color}"}],
+            'threshold' : {'line': {'color': "black", 'width': 0}, 'thickness': 0.5, 'value': val},
+        },
+        number = {'font': {'size': 24}}
+        ))
 
-    fig.update_layout(margin=dict(l=20, r=20, b=0, t=60), height=350)
+    fig.update_layout(
+        margin=dict(l=20, r=20, b=100, t=60),
+        height=350,
+        width=500,
+        annotations=[
+            dict(
+                text = f"<b>{name}</b>",
+                x=0.5,  
+                y=0.2, 
+                xref="paper", yref="paper",
+                showarrow=False,
+                font=dict(size=35)
+            )
+        ]
+    )
     return fig
 
 
@@ -76,8 +97,8 @@ def createHotspotCol(title, name, data, rate_wb, rate_itu):
         </div>
     """, unsafe_allow_html=True)
 
-def createContinentUsageCol(title, name, data, usage, max_usage):
-    fig = create_half_gauge(usage, max_usage)
+def createContinentUsageCol(name, usage, max_usage, color):
+    fig = create_half_gauge(name, usage, max_usage, color)
     st.plotly_chart(fig)
 
 def createConclusionCol(title, name, data):
@@ -97,13 +118,3 @@ def add_endline(num):
 
 # COMMON STYLE CUSTOMING
 st.set_page_config(layout='wide') #prevent bug 
-
-st.markdown("""
-    <style>
-        h3 {
-            padding-top: 50px !important;
-            border-top: 1px solid white;
-            text-align: center !important;
-        }
-    </style>
-""", unsafe_allow_html=1)
